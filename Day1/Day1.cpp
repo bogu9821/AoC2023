@@ -18,13 +18,8 @@ class DigitsLexer : public Lexer
 public:
 	virtual ~DigitsLexer() = default;
 
-	bool HandleDigits(char const t_character, std::array<char, 2>& t_digits) const
+	void AssignCharacter(char const t_character, std::array<char, 2>& t_digits) const
 	{
-		if (!IsDigit(t_character))
-		{
-			return false;
-		}
-
 		if (t_digits[0] == 0)
 		{
 			t_digits[1] = t_digits[0] = t_character;
@@ -33,8 +28,6 @@ public:
 		{
 			t_digits[1] = t_character;
 		}
-
-		return true;
 	}
 
 	std::array<char, 2> ParseDigits(std::string_view const t_text) const override
@@ -43,7 +36,10 @@ public:
 
 		for (size_t i = 0; i < std::size(t_text); i++)
 		{
-			(void)HandleDigits(t_text[i], digits);
+			if (IsDigit(t_text[i]))
+			{
+				AssignCharacter(t_text[i], digits);
+			}
 		}
 		return digits;
 	}
@@ -79,8 +75,9 @@ public:
 
 		for (size_t i = 0; i < std::size(t_text); i++)
 		{
-			if (HandleDigits(t_text[i], digits))
+			if (IsDigit(t_text[i]))
 			{
+				AssignCharacter(t_text[i], digits);
 				continue;
 			}
 
@@ -88,16 +85,7 @@ public:
 			{
 				if (t_text.substr(i, digitsStr[j].size()) == digitsStr[j])
 				{
-					const char value = static_cast<char>(j) + '1';
-
-					if (digits[0] == 0)
-					{
-						digits[1] = digits[0] = value;
-					}
-					else
-					{
-						digits[1] = value;
-					}
+					AssignCharacter(static_cast<char>(j) + '1', digits);
 				}
 			}
 		}
@@ -114,7 +102,7 @@ public:
 	{
 		const auto digits = t_lexer.ParseDigits(t_text);
 
-		std::from_chars(digits.data(), std::next(digits.data(), 2), m_num);
+		m_num = ((digits[0] - '0') * 10) + digits[1] - '0';
 	}
 
 	int GetDigit() const
@@ -160,8 +148,6 @@ int main()
 
 	const auto sum1 = std::accumulate(std::begin(calibrations), std::end(calibrations), 0, CountCalibrations);
 
-	std::println("First {}", sum1);
-
 	calibrations.clear();
 
 	for (const auto& fileLine : lines)
@@ -171,10 +157,7 @@ int main()
 
 	const auto sum2 = std::accumulate(std::begin(calibrations), std::end(calibrations), 0, CountCalibrations);
 
-	std::println("Second {}", sum2);
-
-
-
+	std::println("First: {}\nSecond: {}", sum1, sum2);
 
 	return 0;
 }
