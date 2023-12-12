@@ -114,17 +114,19 @@ private:
 	int m_num{};
 };
 
-int main()
+inline constexpr size_t INPUT_RESERVE_SIZE = 1000;
+
+std::vector<std::string> GetInput()
 {
 	std::ifstream file{ "input.txt" };
 
 	if (!file.is_open())
 	{
-		return 0;
+		return;
 	}
 
 	std::vector<std::string> lines;
-	lines.reserve(1000);
+	lines.reserve(INPUT_RESERVE_SIZE);
 
 	std::string line{};
 	while (std::getline(file, line))
@@ -132,6 +134,13 @@ int main()
 		lines.push_back(std::move(line));
 		line = {};
 	}
+
+	return lines;
+}
+
+int main()
+{
+	auto lines = GetInput();
 
 	auto CountCalibrations = [](int t_counter, const Calibration& t_value)
 	{
