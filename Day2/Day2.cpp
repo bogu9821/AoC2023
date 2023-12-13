@@ -5,6 +5,7 @@
 #include <print>
 #include <ranges>
 #include <algorithm>
+#include <numeric>
 
 inline constexpr size_t INPUT_RESERVE_SIZE = 100;
 
@@ -30,7 +31,7 @@ std::vector<std::string> GetInput()
 	return lines;
 }
 
-enum class CubeColor : size_t
+enum class CubeColor : int
 {
 	RED = 12,
 	GREEN = 13,
@@ -57,40 +58,41 @@ constexpr CubeColor TextToColor(std::string_view t_text)
 class Cube
 {
 public:
-	constexpr Cube(CubeColor t_color, size_t t_count) noexcept
+	constexpr Cube(CubeColor t_color, int t_count) noexcept
 		: m_color(t_color),
 		m_count(t_count)
 	{
 	}
 
-	constexpr size_t GetMax() const noexcept
+	constexpr int GetMax() const noexcept
 	{
 		return std::to_underlying(m_color);
 	}
 
 
 	CubeColor m_color;
-	size_t m_count;
+	int m_count;
 };
 
 class Set
 {
 public:
-	Set(const std::vector<Cube>& t_cubes)
+	Set(std::vector<Cube> t_cubes)
 	{
-		std::array<size_t, 3> colorCounters{};
 		for (const auto& cube : t_cubes)
 		{
-			colorCounters[cube.GetMax() - 12] += cube.m_count;
+			const auto index = static_cast<size_t>(cube.GetMax() - 12);
 
-			if (colorCounters[cube.GetMax() - 12] > cube.GetMax())
+			m_colorCounters[index] += cube.m_count;
+
+			if (m_colorCounters[index] > cube.GetMax())
 			{
 				m_valid = false;
-				break;
 			}
 		}
 	}
 
+	std::array<int, 3> m_colorCounters{};
 	bool m_valid{ true };
 };
 
@@ -102,9 +104,9 @@ public:
 		static constexpr std::string_view begin{ "Game " };
 
 		const std::string_view id = t_data.substr(begin.size(), t_data.find(':') - begin.size());
-		std::from_chars(id.data(), std::next(id.data(), id.size()), m_id);
+		std::from_chars(id.data(), std::next(id.data(), static_cast<std::ptrdiff_t>(id.size())), m_id);
 
-		auto const data = std::views::drop(t_data, begin.size() + id.size() + 1);
+		auto const data = std::views::drop(t_data, static_cast<std::ptrdiff_t>(begin.size() + id.size() + 1));
 
 		m_sets.reserve(3);
 
@@ -119,8 +121,8 @@ public:
 				
 				const auto numEndIndex = ballInfo.find(' ');
 
-				size_t num{};
-				(void)std::from_chars(ballInfo.data(), std::next(ballInfo.data(), numEndIndex), num);
+				int num{};
+				(void)std::from_chars(ballInfo.data(), std::next(ballInfo.data(), static_cast<std::ptrdiff_t>(numEndIndex)), num);
 				cubes.emplace_back(TextToColor(ballInfo.substr(numEndIndex + 1)), num);
 			}
 
@@ -138,13 +140,27 @@ public:
 		return m_id;
 	}
 
+	std::array<int,3> GetMinimalCubesCount() const
+	{
+		std::array<int, 3> count{};
+
+		for (const auto& set : m_sets)
+		{
+			for (size_t i = 0; i < std::size(count); i++)
+			{
+				count[i] = std::max(count[i], set.m_colorCounters[i]);
+			}
+		}
+
+		return count;
+	}
+
 
 private:
 	size_t m_id{};
 	std::vector<Set> m_sets;
 
 };
-
 int main()
 {
 	const auto lines = GetInput();
@@ -152,18 +168,26 @@ int main()
 	std::vector<Game> games;
 	games.reserve(INPUT_RESERVE_SIZE);
 
-	size_t sum{};
-
+	size_t validGamesSum{};
+	size_t powerSum{};
 	for (const auto& line : lines)
 	{
-		if (const auto& game = games.emplace_back(line);
-			game.Valid())
+		const auto& game = games.emplace_back(line);
+		if (game.Valid())
 		{
-			sum += game.GetID();
+			validGamesSum += game.GetID();
 		}
+
+		const auto cubesCount = game.GetMinimalCubesCount();
+
+		powerSum += std::accumulate(std::begin(cubesCount), std::end(cubesCount), 1, [](auto t_left, auto t_right)
+		{
+			return t_left * t_right;
+		});
+
 	}
 
-	std::println("Part 1 sum {}", sum);
+	std::println("Part 1 sum of valid games {}\nPart 2 sum of powers {}", validGamesSum, powerSum);
 
 	return 0;
 }
