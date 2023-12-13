@@ -122,7 +122,7 @@ std::vector<std::string> GetInput()
 
 	if (!file.is_open())
 	{
-		return;
+		return {};
 	}
 
 	std::vector<std::string> lines;
