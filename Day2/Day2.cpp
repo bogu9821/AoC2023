@@ -76,7 +76,7 @@ public:
 class Set
 {
 public:
-	Set(const std::vector<Cube>& t_cubes) 
+	Set(const std::vector<Cube>& t_cubes)
 	{
 		std::array<size_t, 3> colorCounters{};
 		for (const auto& cube : t_cubes)
@@ -91,7 +91,7 @@ public:
 		}
 	}
 
-	bool m_valid{true};
+	bool m_valid{ true };
 };
 
 class Game
@@ -99,31 +99,29 @@ class Game
 public:
 	Game(std::string_view const t_data)
 	{
-		static constexpr std::string_view begin{"Game "};
+		static constexpr std::string_view begin{ "Game " };
 
 		const std::string_view id = t_data.substr(begin.size(), t_data.find(':') - begin.size());
 		std::from_chars(id.data(), std::next(id.data(), id.size()), m_id);
 
 		auto const data = std::views::drop(t_data, begin.size() + id.size() + 1);
 
+		m_sets.reserve(3);
+
 		for (const auto game : std::views::split(data, ';'))
 		{
-			std::vector<Cube> cubes; 
+			std::vector<Cube> cubes;
 			cubes.reserve(4);
 
-			for (auto ball : std::views::split(game, ','))
-			{		
-				const std::string_view ballInfo{ ball.advance(1) };
-
-				auto const numBegin = ballInfo.data();
-				size_t numEndIndex = ballInfo.find(' ');
-				auto const numEnd = std::next(numBegin, numEndIndex);
+			for (const auto ball : std::views::split(game, ','))
+			{
+				const std::string_view ballInfo{ ball | std::views::drop(1) };
+				
+				const auto numEndIndex = ballInfo.find(' ');
 
 				size_t num{};
-				std::from_chars(numBegin, numEnd, num);
-
-				cubes.emplace_back(TextToColor(std::string_view{ ball.advance(numEndIndex + 1) }), num);
-
+				(void)std::from_chars(ballInfo.data(), std::next(ballInfo.data(), numEndIndex), num);
+				cubes.emplace_back(TextToColor(ballInfo.substr(numEndIndex + 1)), num);
 			}
 
 			m_sets.emplace_back(Set{ std::move(cubes) });
@@ -148,9 +146,9 @@ private:
 };
 
 int main()
-{	
+{
 	const auto lines = GetInput();
-	
+
 	std::vector<Game> games;
 	games.reserve(INPUT_RESERVE_SIZE);
 
@@ -165,7 +163,7 @@ int main()
 		}
 	}
 
-	std::println("Part 1 sum {}",sum);
+	std::println("Part 1 sum {}", sum);
 
 	return 0;
 }
