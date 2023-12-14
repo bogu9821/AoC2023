@@ -77,7 +77,7 @@ public:
 class Set
 {
 public:
-	Set(std::vector<Cube> t_cubes)
+	constexpr Set(std::vector<Cube> t_cubes)
 	{
 		for (const auto& cube : t_cubes)
 		{
@@ -99,14 +99,14 @@ public:
 class Game
 {
 public:
-	Game(std::string_view const t_data)
+	constexpr Game(std::string_view const t_data)
 	{
-		static constexpr std::string_view begin{ "Game " };
+		constexpr std::string_view gameBegin{ "Game " };
 
-		const std::string_view id = t_data.substr(begin.size(), t_data.find(':') - begin.size());
-		std::from_chars(id.data(), std::next(id.data(), static_cast<std::ptrdiff_t>(id.size())), m_id);
+		const std::string_view id = t_data.substr(gameBegin.size(), t_data.find(':') - gameBegin.size());
+		(void)std::from_chars(id.data(), std::next(id.data(), static_cast<std::ptrdiff_t>(id.size())), m_id);
 
-		auto const data = std::views::drop(t_data, static_cast<std::ptrdiff_t>(begin.size() + id.size() + 1));
+		auto const data = std::views::drop(t_data, static_cast<std::ptrdiff_t>(gameBegin.size() + id.size() + 1));
 
 		m_sets.reserve(3);
 
@@ -117,30 +117,29 @@ public:
 
 			for (const auto ball : std::views::split(game, ','))
 			{
-				const std::string_view ballInfo{ ball | std::views::drop(1) };
-				
-				const auto numEndIndex = ballInfo.find(' ');
+				const auto numBegin = ball | std::views::drop(1);
+				const auto numEnd = std::ranges::find(numBegin, ' ');
 
 				int num{};
-				(void)std::from_chars(ballInfo.data(), std::next(ballInfo.data(), static_cast<std::ptrdiff_t>(numEndIndex)), num);
-				cubes.emplace_back(TextToColor(ballInfo.substr(numEndIndex + 1)), num);
+				(void)std::from_chars(numBegin.data(), &*numEnd, num);
+				cubes.emplace_back(TextToColor(std::string_view{ std::next(numEnd),std::end(ball)}), num);
 			}
 
 			m_sets.emplace_back(Set{ std::move(cubes) });
 		}
 	}
 
-	bool Valid() const noexcept
+	constexpr bool Valid() const noexcept
 	{
 		return std::ranges::all_of(m_sets, [](const auto& t_set) { return t_set.m_valid;  });
 	}
 
-	size_t GetID() const
+	constexpr size_t GetID() const
 	{
 		return m_id;
 	}
 
-	std::array<int,3> GetMinimalCubesCount() const
+	constexpr std::array<int, 3> GetMinimalCubesCount() const
 	{
 		std::array<int, 3> count{};
 
@@ -170,9 +169,10 @@ int main()
 
 	size_t validGamesSum{};
 	size_t powerSum{};
+
 	for (const auto& line : lines)
 	{
-		const auto& game = games.emplace_back(line);
+		const auto& game = games.emplace_back(Game{ line });
 		if (game.Valid())
 		{
 			validGamesSum += game.GetID();
